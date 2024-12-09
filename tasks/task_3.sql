@@ -1,122 +1,108 @@
-CREATE SCHEMA IF NOT EXISTS loyalty_program;
-SET search_path = loyalty_program, public;
+CREATE SCHEMA IF NOT EXISTS LOYALTY_PROGRAM;
 
-DROP TABLE IF EXISTS user_info CASCADE;
-CREATE TABLE user_info
-(
-    user_id text primary key,
-    name    text not null,
-    email   text unique
-        constraint check_email
-            check (email ~~ '%@%.%'::text),
-    phone   text not null unique
-        constraint check_phone
-            check (length(phone) = 11)
+SET
+	SEARCH_PATH = LOYALTY_PROGRAM,
+	PUBLIC;
+
+DROP TABLE IF EXISTS USER_INFO CASCADE;
+
+CREATE TABLE USER_INFO (
+	USER_ID TEXT PRIMARY KEY,
+	NAME TEXT NOT NULL,
+	EMAIL TEXT UNIQUE CONSTRAINT CHECK_EMAIL CHECK (EMAIL ~~ '%@%.%'::TEXT),
+	PHONE TEXT NOT NULL UNIQUE CONSTRAINT CHECK_PHONE CHECK (LENGTH(PHONE) = 11)
 );
 
-DROP TABLE IF EXISTS account_info CASCADE;
-CREATE TABLE account_info
-(
-    account_number text primary key,
-    balance        numeric(100, 5)
-        constraint check_balance
-            check ( balance >= 0 ),
-    created_at     date not null,
-    updated_at     date not null
+DROP TABLE IF EXISTS ACCOUNT_INFO CASCADE;
 
+CREATE TABLE ACCOUNT_INFO (
+	ACCOUNT_NUMBER TEXT PRIMARY KEY,
+	BALANCE NUMERIC(100, 5) CONSTRAINT CHECK_BALANCE CHECK (BALANCE >= 0),
+	CREATED_AT DATE NOT NULL,
+	UPDATED_AT DATE NOT NULL
 );
 
-DROP TABLE IF EXISTS user_account CASCADE;
-CREATE TABLE user_account
-(
-    account_id     text primary key,
-    user_id        text    not null references user_info (user_id),
-    account_number text    not null references account_info (account_number),
-    is_active      boolean not null default false,
-    created_at     date    not null
+DROP TABLE IF EXISTS USER_ACCOUNT CASCADE;
+
+CREATE TABLE USER_ACCOUNT (
+	ACCOUNT_ID TEXT PRIMARY KEY,
+	USER_ID TEXT NOT NULL REFERENCES USER_INFO (USER_ID),
+	ACCOUNT_NUMBER TEXT NOT NULL REFERENCES ACCOUNT_INFO (ACCOUNT_NUMBER),
+	IS_ACTIVE BOOLEAN NOT NULL DEFAULT FALSE,
+	CREATED_AT DATE NOT NULL
 );
 
-DROP TABLE IF EXISTS promo CASCADE;
-CREATE TABLE promo
-(
-    promo_id text primary key,
-    discount numeric(8, 5)
-        constraint check_discount
-            check ( discount >= 0 ),
-    name     text not null,
-    type     text not null
-        constraint check_type
-            check ( type ~~ 'absolute'::text or type ~~ 'relative'::text)
+DROP TABLE IF EXISTS PROMO CASCADE;
+
+CREATE TABLE PROMO (
+	PROMO_ID TEXT PRIMARY KEY,
+	DISCOUNT NUMERIC(8, 5) CONSTRAINT CHECK_DISCOUNT CHECK (DISCOUNT >= 0),
+	NAME TEXT NOT NULL,
+	TYPE TEXT NOT NULL CONSTRAINT CHECK_TYPE CHECK (
+		TYPE ~~ 'absolute'::TEXT
+		OR TYPE ~~ 'relative'::TEXT
+	)
 );
 
-DROP TABLE IF EXISTS region_info CASCADE;
-CREATE TABLE region_info
-(
-    region_id integer primary key,
-    tax       numeric(8, 5)
-        constraint check_tax
-            check ( tax >= 0 ),
-    iso_3     text not null
+DROP TABLE IF EXISTS REGION_INFO CASCADE;
+
+CREATE TABLE REGION_INFO (
+	REGION_ID INTEGER PRIMARY KEY,
+	TAX NUMERIC(8, 5) CONSTRAINT CHECK_TAX CHECK (TAX >= 0),
+	ISO_3 TEXT NOT NULL
 );
 
+DROP TABLE IF EXISTS MERCHANT_INFO CASCADE;
 
-DROP TABLE IF EXISTS merchant_info CASCADE;
-CREATE TABLE merchant_info
-(
-    merchant_id text primary key,
-    name        text    not null,
-    region_id   integer not null references region_info (region_id)
+CREATE TABLE MERCHANT_INFO (
+	MERCHANT_ID TEXT PRIMARY KEY,
+	NAME TEXT NOT NULL,
+	REGION_ID INTEGER NOT NULL REFERENCES REGION_INFO (REGION_ID)
 );
 
-DROP TABLE IF EXISTS merchant_account_history CASCADE;
-CREATE TABLE merchant_account_history
-(
-    account_id  text primary key,
-    merchant_id text    not null references merchant_info (merchant_id),
-    event_type  text    not null,
-    is_active   boolean not null default false,
-    updated_at  date    not null
+DROP TABLE IF EXISTS MERCHANT_ACCOUNT_HISTORY CASCADE;
+
+CREATE TABLE MERCHANT_ACCOUNT_HISTORY (
+	ACCOUNT_ID TEXT PRIMARY KEY,
+	MERCHANT_ID TEXT NOT NULL REFERENCES MERCHANT_INFO (MERCHANT_ID),
+	EVENT_TYPE TEXT NOT NULL,
+	IS_ACTIVE BOOLEAN NOT NULL DEFAULT FALSE,
+	UPDATED_AT DATE NOT NULL
 );
 
+DROP TABLE IF EXISTS MERCHANT_ACCOUNT CASCADE;
 
-DROP TABLE IF EXISTS merchant_account CASCADE;
-CREATE TABLE merchant_account
-(
-    account_id     text primary key,
-    merchant_id    text    not null references merchant_info (merchant_id),
-    account_number text    not null references account_info (account_number),
-    is_active      boolean not null default false
+CREATE TABLE MERCHANT_ACCOUNT (
+	ACCOUNT_ID TEXT PRIMARY KEY,
+	MERCHANT_ID TEXT NOT NULL REFERENCES MERCHANT_INFO (MERCHANT_ID),
+	ACCOUNT_NUMBER TEXT NOT NULL REFERENCES ACCOUNT_INFO (ACCOUNT_NUMBER),
+	IS_ACTIVE BOOLEAN NOT NULL DEFAULT FALSE
 );
 
-DROP TABLE IF EXISTS currency CASCADE;
-CREATE TABLE currency
-(
-    currency_id   text primary key,
-    name          text not null,
-    exchange_rate numeric(8, 5)
-        constraint check_exchange_rate
-            check ( exchange_rate > 0 )
+DROP TABLE IF EXISTS CURRENCY CASCADE;
+
+CREATE TABLE CURRENCY (
+	CURRENCY_ID TEXT PRIMARY KEY,
+	NAME TEXT NOT NULL,
+	EXCHANGE_RATE NUMERIC(8, 5) CONSTRAINT CHECK_EXCHANGE_RATE CHECK (EXCHANGE_RATE > 0)
 );
 
-DROP TABLE IF EXISTS transaction CASCADE;
-CREATE TABLE transaction
-(
-    transaction_id       text primary key,
-    user_account_id      text   not null references user_account (account_id),
-    merchant_account_id  text   not null references merchant_account (account_id),
-    currency_id          text   not null references currency (currency_id),
-    amount               numeric(99, 5)
-        constraint check_amount
-            check ( amount >= 0 ),
-    timestamp            date   not null,
-    status               text   not null,
-    amount_before_promos numeric(99, 5)
-        constraint check_amount_b_promos
-            check ( amount_before_promos >= 0 )
+DROP TABLE IF EXISTS TRANSACTION CASCADE;
+
+CREATE TABLE TRANSACTION (
+	TRANSACTION_ID TEXT PRIMARY KEY,
+	USER_ACCOUNT_ID TEXT NOT NULL REFERENCES USER_ACCOUNT (ACCOUNT_ID),
+	MERCHANT_ACCOUNT_ID TEXT NOT NULL REFERENCES MERCHANT_ACCOUNT (ACCOUNT_ID),
+	CURRENCY_ID TEXT NOT NULL REFERENCES CURRENCY (CURRENCY_ID),
+	AMOUNT NUMERIC(99, 5) CONSTRAINT CHECK_AMOUNT CHECK (AMOUNT >= 0),
+	TIMESTAMP DATE NOT NULL,
+	STATUS TEXT NOT NULL,
+	AMOUNT_BEFORE_PROMOS NUMERIC(99, 5) CONSTRAINT CHECK_AMOUNT_B_PROMOS CHECK (AMOUNT_BEFORE_PROMOS >= 0)
 );
 
-DROP TABLE IF EXISTS applied_promos CASCADE;
-CREATE TABLE applied_promos(
-    transaction_id text references transaction(transaction_id),
-    promo_id text references promo(promo_id)
-)
+DROP TABLE IF EXISTS APPLIED_PROMOS CASCADE;
+
+CREATE TABLE APPLIED_PROMOS (
+	TRANSACTION_ID TEXT REFERENCES TRANSACTION (TRANSACTION_ID),
+	PROMO_ID TEXT REFERENCES PROMO (PROMO_ID)
+);
