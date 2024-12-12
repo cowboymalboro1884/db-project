@@ -2,10 +2,6 @@ SET
 	SEARCH_PATH = LOYALTY_PROGRAM,
 	PUBLIC;
 
-CREATE SEQUENCE IF NOT EXISTS ACCOUNT_NUMBER_SEQ START
-WITH
-	100 INCREMENT BY 1;
-
 CREATE SEQUENCE IF NOT EXISTS USER_ACCOUNT_ID_SEQ START
 WITH
 	100 INCREMENT BY 1;
@@ -16,10 +12,9 @@ WITH
 
 -- Create new user
 CREATE
-OR REPLACE FUNCTION CREATE_NEW_USER (P_NAME TEXT, P_EMAIL TEXT, P_PHONE TEXT) RETURNS VOID AS $$
+OR REPLACE FUNCTION CREATE_NEW_USER (P_ACCOUNT_NUMBER TEXT, P_NAME TEXT, P_EMAIL TEXT, P_PHONE TEXT) RETURNS VOID AS $$
 DECLARE
     v_user_id        TEXT;
-    v_account_number TEXT;
     v_account_id     TEXT;
     v_current_time   TIMESTAMP := NOW();
 BEGIN
@@ -28,21 +23,22 @@ BEGIN
     INSERT INTO USER_INFO (USER_ID, NAME, EMAIL, PHONE)
     VALUES (v_user_id, p_name, p_email, p_phone);
 
-    v_account_number := NEXTVAL('account_number_seq');
 
     INSERT INTO ACCOUNT_INFO (ACCOUNT_NUMBER, BALANCE, CREATED_AT, UPDATED_AT)
-    VALUES (v_account_number, 10000, v_current_time, v_current_time);
+    VALUES (P_ACCOUNT_NUMBER, 10000, v_current_time, v_current_time);
 
     v_account_id := NEXTVAL('user_account_id_seq');
 
     INSERT INTO USER_ACCOUNT (ACCOUNT_ID, USER_ID, ACCOUNT_NUMBER, IS_ACTIVE)
-    VALUES (v_account_id, v_user_id, v_account_number, TRUE);
+    VALUES (v_account_id, v_user_id, P_ACCOUNT_NUMBER, TRUE);
 
 END;
 $$ LANGUAGE PLPGSQL;
 
 -- Example
--- SELECT create_new_user( 'Aboba Boba', 'aboba@example.com', '79129357814');
+-- SELECT create_new_user('1123', 'Aboba Boba', 'aboba@example.com', '79129357814');
+
+
 -- Create new transaction
 CREATE SEQUENCE IF NOT EXISTS TRANSACTION_ID_SEQ START
 WITH
