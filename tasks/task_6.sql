@@ -1,0 +1,117 @@
+SET
+	SEARCH_PATH = LOYALTY_PROGRAM,
+	PUBLIC;
+
+
+-- List  of users who have made transactions worth more than 600
+SELECT
+	UI.USER_ID,
+	UI.NAME,
+	SUM(T.AMOUNT) AS TOTAL_SPENT
+FROM
+	USER_INFO UI
+	JOIN USER_ACCOUNT UA ON UI.USER_ID = UA.USER_ID
+	JOIN TRANSACTION T ON UA.ACCOUNT_ID = T.USER_ACCOUNT_ID
+GROUP BY
+	UI.USER_ID
+HAVING
+	SUM(T.AMOUNT) > 600
+ORDER BY
+	TOTAL_SPENT DESC;
+
+
+-- List of merchants with more than 50 transactions
+SELECT
+	MI.MERCHANT_ID,
+	MI.NAME,
+	COUNT(T.TRANSACTION_ID) AS TRANSACTION_COUNT
+FROM
+	MERCHANT_INFO MI
+	JOIN MERCHANT_ACCOUNT MA ON MI.MERCHANT_ID = MA.MERCHANT_ID
+	JOIN TRANSACTION T ON MA.ACCOUNT_ID = T.MERCHANT_ACCOUNT_ID
+GROUP BY
+	MI.MERCHANT_ID
+HAVING
+	COUNT(T.TRANSACTION_ID) > 50
+ORDER BY
+	TRANSACTION_COUNT DESC;
+
+
+-- For each transaction, get information about the transaction along with the cumulative
+-- amount of funds spent by this user at the time of each transaction.
+SELECT
+	T.USER_ACCOUNT_ID,
+	T.TRANSACTION_ID,
+	T.AMOUNT,
+	T.TIMESTAMP,
+	SUM(T.AMOUNT) OVER (
+		PARTITION BY
+			T.USER_ACCOUNT_ID
+		ORDER BY
+			T.TIMESTAMP ROWS BETWEEN UNBOUNDED PRECEDING
+			AND CURRENT ROW
+	) AS CUMULATIVE_AMOUNT
+FROM
+	TRANSACTION T
+ORDER BY
+	T.USER_ACCOUNT_ID,
+	T.TIMESTAMP;
+
+
+-- Top 5 users with the highest total transaction amount.
+-- For each of these users, display their rank, ID, name and total amount of money spent
+WITH
+	USER_TOTALS AS (
+		SELECT
+			UI.USER_ID,
+			UI.NAME,
+			SUM(T.AMOUNT) AS TOTAL_SPENT
+		FROM
+			USER_INFO UI
+			JOIN USER_ACCOUNT UA ON UI.USER_ID = UA.USER_ID
+			JOIN TRANSACTION T ON UA.ACCOUNT_ID = T.USER_ACCOUNT_ID
+		GROUP BY
+			UI.USER_ID,
+			UI.NAME
+	),
+	RANKED_USERS AS (
+		SELECT
+			USER_ID,
+			NAME,
+			TOTAL_SPENT,
+			RANK() OVER (
+				ORDER BY
+					TOTAL_SPENT DESC
+			) AS RANK
+		FROM
+			USER_TOTALS
+	)
+SELECT
+	USER_ID,
+	NAME,
+	TOTAL_SPENT,
+	RANK
+FROM
+	RANKED_USERS
+WHERE
+	RANK <= 5
+ORDER BY
+	RANK;
+
+
+-- Get the average transaction amount for each currency and display only those currencies with an average
+-- transaction amount greater than 500. Sort by average amount
+SELECT
+	C.CURRENCY_ID,
+	C.NAME,
+	AVG(T.AMOUNT) AS AVERAGE_AMOUNT
+FROM
+	CURRENCY C
+	JOIN TRANSACTION T ON C.CURRENCY_ID = T.CURRENCY_ID
+GROUP BY
+	C.CURRENCY_ID,
+	C.NAME
+HAVING
+	AVG(T.AMOUNT) > 500
+ORDER BY
+	AVERAGE_AMOUNT DESC;
