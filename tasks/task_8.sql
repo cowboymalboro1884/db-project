@@ -1,12 +1,13 @@
--- Показывает статистику по пользователям - количество транзакций, количесто потраченных денег и средний размер транзакции 
+-- Показывает статистику по пользователям - количество транзакций, количесто потраченных денег, количество сэкономленных денег и средний размер транзакции 
 
 CREATE OR REPLACE VIEW user_transaction_summary AS
 SELECT
     ui.USER_ID,
     ui.NAME,
     COUNT(t.TRANSACTION_ID) AS total_transactions,
-    SUM(t.AMOUNT) AS total_amount,
-    AVG(t.AMOUNT) AS average_transaction_amount
+    SUM(t.AMOUNT) AS total_amount_spent,
+    AVG(t.AMOUNT) AS average_transaction_amount,
+    SUM(t.AMOUNT_BEFORE_PROMOS - t.AMOUNT) AS total_amount_saved
 FROM
     USER_INFO ui
     INNER JOIN USER_ACCOUNT ua ON ui.USER_ID = ua.USER_ID
@@ -22,14 +23,14 @@ SELECT
     mi.NAME,
     COUNT(t.TRANSACTION_ID) AS total_transactions,
     SUM(t.AMOUNT) AS total_sales_amount,
-    AVG(t.AMOUNT) AS average_transaction_amount
+    AVG(t.AMOUNT) AS average_transaction_amount,
+    SUM(t.AMOUNT_BEFORE_PROMOS - t.AMOUNT) AS total_amount_discounted
 FROM
     MERCHANT_INFO mi
     INNER JOIN MERCHANT_ACCOUNT ma ON mi.MERCHANT_ID = ma.MERCHANT_ID
     INNER JOIN TRANSACTION t ON ma.ACCOUNT_ID = t.MERCHANT_ACCOUNT_ID
 GROUP BY
     mi.MERCHANT_ID, mi.NAME;
-
 
 
 -- Статистики по промо компаниям: количество транзакций, количество поучавствовавших пользователей и потраченный бюджет 
